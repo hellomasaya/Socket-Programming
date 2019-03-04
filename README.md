@@ -3,6 +3,7 @@ Assignment 1 - Socket programming
 ## Harshita Sharma
 
 To run the code:
+
 	cd Server
 	gcc server.c
 	./a.out
