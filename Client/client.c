@@ -1,146 +1,193 @@
 // Client side C/C++ program to demonstrate Socket programming
-#include <stdio.h>
-#include <sys/socket.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#define pr_nl printf("\n")
 #define PORT 8080
-char ** break_input(char * c)
-{
-    char ** ret = malloc(10*sizeof(char*));
-    char *token = strtok(c," \t\n");//tokenizing based on newline or tab characters
-    int i=0;
-    while(token!=NULL)
-    {
-        ret[i]=token;
-        i++;
-        token = strtok(NULL," \t\n");
-    }
-    ret[i]=NULL;
-    return ret;//returning the tokenized commands.
+#define FAIL_STATUS 400
 
+/*struct message -> used to write and send replies to clients
+  status contains the response for a particular request sent by the client
+  size contains the size of the message to be sent to the client
+  fileBuffer has the file content to be transferred
+ */
+
+typedef struct message
+{
+	int size;
+	int status;
+	char fileBuffer[(int)1000];
+	int size2;
+	// char arg[(int)10];
+} message;
+
+char** cut(char* com,char dlm)
+{
+	int ct = 0;
+	int flag=2;
+	int flag1=1;
+	char** j=malloc(sizeof(char*)*1000);
+	if(dlm==' ')
+	{
+		int tmp=ct;
+		char* token = strtok(com," ");
+		char new_char;
+		while(token != NULL)
+		{
+			j[ct]=token;
+			flag=1;
+			token=strtok(NULL, " ");
+			ct++;
+		}
+		for(int r=0;r<ct;r++)
+		{
+			if(flag1)
+				printf("%s ",j[r]);
+		}
+	}
+	else{
+		while(ct!=flag)
+			ct++;
+		flag=0;
+	}
+	pr_nl;
 }
+
 int main(int argc, char const *argv[])
 {
-        struct sockaddr_in address;
-        int sock = 0, valread;
-        struct sockaddr_in serv_addr;
-        
-        if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        {
-            printf("\n Socket creation error \n");
-            return -1;
-        }
+	message M;
+	struct sockaddr_in address;
+	int sock = 0; int valread;
+	struct sockaddr_in serv_addr;
+	int flagg=1;
+	char fileName[100]={}, *failureMessage = "failed to open file";
+	char buffer[1024] = {0};
+	FILE *fd = 0;
 
-        memset(&serv_addr, '0', sizeof(serv_addr)); // to make sure the struct is empty. Essentially sets sin_zero as 0
-                                                    // which is meant to be, and rest is defined below
 
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(PORT);
+	while(flagg)
+	{
+		printf(">> ");
+		char arg[100]={}; 
+		int tmp=0;
+		char temp[10]={};
+		scanf("%[^\n]s", arg);
+		getchar();
+		int i = 0, res1 = strcmp(arg, "listall");
+		int fou = 4;
+		while(i!=fou)
+		{
+			temp[i] = arg[i];
+			if(flagg) flagg++;
+			i++;
+		}
+		if(fou!=4) continue;
+		int ress=1; 
+		int res2 = strcmp(temp, "send"), res3 = strcmp(arg, "quit");
+		if(!res3)
+		{
+			if(fou!=4) continue; 
+			printf("Assignment over!!!\n");
+			break;
+		}
+		if(res1 && res2 && res3 && ress)
+		{
+			perror("Not a valid argument\n");
+			continue;
+		}
+		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0 && ress)
+		{
+			printf("\n Socket creation error \n");
+			return -1;
+		}
+		if(fou!=4) continue; 
+		memset(&serv_addr, '0', sizeof(serv_addr)); // to make sure the struct is empty. Essentially sets sin_zero as 0
+		// which is meant to be, and rest is defined below
 
-        // Converts an IP address in numbers-and-dots notation into either a
-        // struct in_addr or a struct in6_addr depending on whether you specify AF_INET or AF_INET6.
-        if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)
-        {
-            printf("\nInvalid address/ Address not supported \n");
-            return -1;
-        }
+		serv_addr.sin_family = AF_INET;
+		if(fou!=4) continue; 
+		serv_addr.sin_port = htons(PORT);
+		if(ress && inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)
+		{
+			printf("\nInvalid address/ Address not supported \n");
+			return -1;
+		}
+		if(ress){
+			if (ress && connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)  // connect to the server address
+			{
+				printf("\nConnection Failed \n");
+				return -1;
+			}
+		}
 
-        if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)  // connect to the server address
-        {
-            printf("\nConnection Failed \n");
-            return -1;
-        }
-        else
-        {
-            while(1)
-            {
-                printf(">> ");
-                
-                char input[1000];
-                char *temp;
-                size_t len;
-                //get line function will read whitespaces also
-                getline(&temp,&len,stdin);
-                //we then need to convert it into actual characters
-                strcpy(input,temp);
-                int length = strlen(input);
-                input[length]='\0';
-                //break_input function will break the input based on spaces i.e will tokenize on the basis of 
-                //whitespaces so that arguments could be sperated.
-                char **args = break_input(input);
-                int size=0;
-                while(args[size]!=NULL)
-                    size++;
-                if(strcmp(args[0],"close")==0)
-                {
-                    break;
-                    //will break the connection
-                }
-                else if(strcmp(args[0],"listall")==0)
-                {
-                    char buffer[10240] = {0};
-                    send(sock , args[0] , sizeof(args[0]) , 0 );
-                    valread = read( sock , buffer, 10240);  // receive message back from server, into the buffer
-                    printf("%s\n",buffer);
-                }
-                else if(strcmp(args[0],"send")==0)
-                {
-                    char buffer[10240] = {0};
-                    if(size ==1)
-                    {
-                        // only send command entered
-                        printf("No File Entered\n");
-                        continue;
-                    }
-                    else if(size>2)
-                    {
-                        // multiple files entered.
-                        printf("Multiple Files Entered(Only 1 Allowed)\n");
-                        continue;
-                    }
-                    send(sock , args[0] , sizeof(args[0]) , 0 );//inform server about the send command
-                    valread = read( sock , buffer, 10240);  // receive acknowledgment
-                    send(sock , args[1], sizeof(args[1]),0);//send file name
-                    valread = read( sock , buffer, 10240);//recived acknowlegment
-                    if(strcmp(buffer,"No such file")==0)
-                    {
-                        //file does not exist
-                        printf("No such file\n");
-                        continue;
-                    }
-                    //file exits
-                    FILE * file;
-                    file=fopen(args[1],"w");//open a file for writing, if a file already exists then it will overwrite it
-                    //printf("SFD");
-                    while(1)
-                    {
-                        //will recieve 256 bytes at a time
-                        char rec_buffer[258]={0};
-                        valread = read(sock,rec_buffer,256);
-                        if(valread<=0)//failure in reciving or recieved nothing
-                            break;
-                        fwrite(rec_buffer,sizeof(char),valread,file);
-                        if(valread!=256)
-                            break;//if less than 256 then eof is reached
-                    }
-                    if(valread<0)
-                        printf("Downloading Error\n");
-                    else
-                    {
-                        printf("File downloaded successfully\n");
-                        fclose(file);
-                    }
-                    fclose(file);
-                }
-                else
-                {
-                    printf("Invalid Command\n");
-                }
-            }
-        }
-    return 0;
+		if(fou!=4) continue; 
+		if(!res2 && ress)
+		{
+			// printf("%s\n", arg);
+			i = 4;
+			int j = 0;
+			ress=1;
+			int ress1=1;
+			memset(&fileName, '\0', sizeof(fileName));
+			if(ress){
+				while(ress1 && (arg[i] == ' ' || arg[i] == '\t'))
+					i++;  
+				ress1=0;  
+			}
+			// printf("%d\n", i);		
+			if(ress){
+				while(i < strlen(arg) && arg[i] != ' ' && arg[i] != '\t'){
+					ress=1;
+					fileName[j++] = arg[i++];
+				}
+				ress1=0;
+			}
+			printf("%s\n",fileName);
+			// fileName = (char *)argv[1];
+			send(sock , fileName , strlen(fileName) , 0 );  // send the message/fileName.
+			printf("fileName = %s\n", fileName);
+
+			//to make sure all the variables are empty
+			memset(&M, '\0', sizeof(M));
+			ress=1;
+			memset(&M.fileBuffer, '\0', sizeof(M.fileBuffer));
+			valread = read( sock , &M, sizeof(M));  // receive message back from server, into the buffer
+
+			if(M.status == 400)                     // if no file exists message status is 400 and socket is closed and execution ends.
+			{
+				if(ress)
+					puts("400");
+				valread = 0;
+				perror("file not found\n");
+			}
+			else
+			{
+				fd = fopen(fileName, "w+");         //file is created and data is added to it after getting data from server
+				if(ress)	printf("size = %d\n",M.size);
+				while(M.size && ress)
+				{
+					fwrite(M.fileBuffer, sizeof(char), M.size, fd);
+					memset(&M, '\0', sizeof(M));
+					ress=1;
+					memset(&M.fileBuffer, '\0', sizeof(M.fileBuffer));
+					valread = read(sock, &M, sizeof(message));
+				}
+				fclose(fd);                         //after the whole file is sent, the file descriptor is closed
+			}
+		}
+		else if(!res1 && ress)
+		{
+			send(sock , arg, strlen(arg) , 0 );
+			ress=1;
+			valread = read( sock , &M, sizeof(M));
+			cut(M.fileBuffer,' ');
+		}
+		close(sock); 	
+		ress=1;		//socket is closed
+	}                            
+	return 0;
 }
