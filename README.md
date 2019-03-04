@@ -1,14 +1,20 @@
-#Computer Networks Assignment 1    
-##Aashna Jena(20171095)
+Assignment 1 - Socket programming
+=================================
+## Harshita Sharma
 
-- Run code:
-    gcc server.c
-    ./a.out
-    # Open new terminal
-    gcc client.c
-    ./a.out 
-    listall
-    *lists all files*
-    send <filename>.txt
+To run the code:
+	cd Server
+	gcc server.c
+	./a.out
+	# Open new terminal
+	cd Client
+	gcc client.c
+	./a.out
+	listall
+	send <filname>
 
-- Error Handling has been taken care of.
+The following error handling have been taken care of:
+- Socket creation Error
+- Connection Error
+- File opening Error
+- If file is avaiable on server or not
